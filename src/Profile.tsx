@@ -22,16 +22,28 @@ const Profile = () => {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [idToken, setIdToken] = useState("");
+  const [responseBody, setResponseBody] = useState("");
 
   useEffect(() => {
     const unregisterAuthObserver = firebase.auth().onAuthStateChanged(async (user) => {
-      const token = await user?.getIdToken()
-      if (token) {
-        setIdToken(token)
+      const idToken = await user?.getIdToken()
+      if (idToken) {
+        setIdToken(idToken)
       }
 
       setIsSignedIn(!!user);
       setUser(user)
+
+      const response = await fetch('http://localhost:3001/api/firebase/authorized', {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+        },
+      })
+
+      const responseBody = `${response.status}: ${await response.text()}`
+
+      console.log(`[API Response] ${responseBody}`)
+      setResponseBody(responseBody)
     });
     return () => unregisterAuthObserver(); // Make sure we un-register Firebase observers when the component unmounts.
   }, []);
@@ -45,6 +57,8 @@ const Profile = () => {
         <p>{user.emailVerified ? 'した' : 'まだ'}</p>
         <h3>IDトークン</h3>
         <p>{idToken}</p>
+        <h3>API レスポンス</h3>
+        <p>{responseBody}</p>
         <button onClick={() => firebase.auth().signOut()}>ログアウト</button>
       </div>
     );
